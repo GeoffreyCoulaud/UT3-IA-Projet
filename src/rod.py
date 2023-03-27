@@ -1,4 +1,5 @@
 from typing import MutableSequence
+
 from cube import Cube
 
 
@@ -15,6 +16,10 @@ class Rod():
     cubes: MutableSequence[Cube] = list()
     max_size: int
     number: int
+
+    def __init__(self, number: int, max_size: int = 3) -> None:
+        self.number = number
+        self.max_size = max_size
 
     def put(self, cube: Cube) -> None:
         """Ajouter un cube au dessus"""
