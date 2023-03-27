@@ -1,7 +1,4 @@
-from rod import Rod
-
-
 class Move():
 
-    source: Rod
-    destination: Rod
+    source: int
+    destination: int

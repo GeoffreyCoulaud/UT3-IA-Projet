@@ -12,6 +12,7 @@ class IllegalMove(Exception): pass
 class Game():
 
     rods: MutableSequence[Rod] = list()
+    move_history: MutableSequence[Move] = list()
     max_rod_size: int = 4
 
     def __init__(self, n_rods: int) -> None:
@@ -25,13 +26,14 @@ class Game():
         # TODO
         pass
 
-    def add_cube(self, cube: Cube, rod: Rod):
+    def add_cube(self, cube: Cube, rod: int):
         """Ajouter un cube dans le jeu"""
         # TODO
         pass
 
+
     def play_move(self, move: Move) -> None:
-        """Effectuer un déplacement dans le jeu"""
+        """Effectuer un déplacement dans le jeu et renvoyer une copie du jeu avec le déplacement appliqué"""
         # ! Empêcher les coups illégaux (error)
         # TODO
         pass
