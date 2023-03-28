@@ -12,7 +12,7 @@ class IllegalMove(Exception): pass
 class Game():
 
     rods: MutableSequence[Rod] = list()
-    move_history: MutableSequence[Move] = list()
+    history: MutableSequence[Move] = list()
     max_rod_size: int = 4
 
     def __init__(self, n_rods: int) -> None:
