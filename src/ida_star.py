@@ -9,4 +9,5 @@ class IDAStar():
     depth: int
 
     def find_solution(self) -> list[Move]:
+        # TODO implémenter + fonctions intermédiaires
         pass
