@@ -13,8 +13,10 @@ class IllegalMove(Exception): pass
 class Game():
 
     rods: MutableSequence[Rod] = list()
-    history: MutableSequence[Move] = list()
     max_rod_size: int
+
+    history: MutableSequence[Move] = list() # Déplacements joués pour arriver à cet état
+    total_cost: int = 0 # Coût pour arriver à cet état
 
     def __init__(self, n_rods: int, max_rod_size: int = 4) -> None:
         self.max_rod_size = max_rod_size
