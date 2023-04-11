@@ -1,3 +1,4 @@
+import string
 from typing import Sequence, Callable
 from xmlrpc.client import Boolean
 from etat import Etat
@@ -61,11 +62,17 @@ class IDAStar():
         return etatCopie
 
 
-    def estBut(etat:Etat, etatBut: Etat) ->Boolean:
-        return egal(etat)
+    def estBut(self,etat:Etat, etatBut: Etat) ->Boolean:
+        return self.egal(etat)
     
-    def egal(self,etat: Etat) -> Boolean:
-        return etat == self.etatBut
+    def egal(self,etat: Etat, etatBut: Etat) -> Boolean:
+        for i in range(len(etatBut.listPique)):
+            if (len(etat.listPique[i])!= len(etatBut.listPique[i]) ):
+                return False
+            for j in range(len(etat.listPique[i])):
+                if etat.listPique[i][j] != etatBut.listPique[i][j]:
+                    return False
+        return True
 
 
     def nombreMalMis(self,etat: Etat) ->int:
@@ -80,4 +87,18 @@ class IDAStar():
                     if -j-1 >= etat.lenEtat(etat) or etat.piques[i][j]!= self.etatBut.piques[i][j]:
                         nbMalPlaces +=1
 
+    def h(self, etat: Etat) -> int:
+        return self.nombreMalMis(etat, self.etatBut)
 
+    def operationsPossibles(self,etat: Etat, etatBut: Etat) ->list():
+        listOperationsP = []
+        for pi in range(4):
+            if len(etat.listPique[pi])>0:
+                destinations = self.trouverDestination(etat, pi)
+                for dest in destinations:
+                    etat2 = self.deplacer(etat, pi, dest)
+                    nbMalMis = self.nombreMalMis(etat2, etatBut) #pas sûr s'il faut initialiser avec nbMalMis ou avec 1
+                    listOperationsP.append(('deplacer', etat2, nbMalMis))
+        return listOperationsP
+
+        
