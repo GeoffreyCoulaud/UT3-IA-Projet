@@ -9,3 +9,6 @@ class Cube():
 
     def __str__(self) -> str:
         return str(self.number) + self.color
+    
+    def __eq__(self, other) -> bool:
+        return (self.number == other.number) and (self.color == other.color)

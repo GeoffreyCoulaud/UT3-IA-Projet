@@ -1,13 +1,9 @@
-from typing import MutableSequence
-import pickle
+from typing import MutableSequence, Sequence
 import copy
 
 from rod import Rod
 from cube import Cube
 from move import Move
-
-
-class IllegalMove(Exception): pass
 
 
 class Game():
@@ -24,6 +20,15 @@ class Game():
         for i in range(n_rods):
             rod = Rod(number=i, max_size=self.max_rod_size)
             self.rods.append(rod)
+
+    def __eq__(self, other) -> bool:
+        """Deux jeux sont égaux s'ils ont les mêmes cubes au même endroit"""
+        if len(self.rods) != len(other.rods):
+            return False
+        for (a, b) in zip(self.rods, other.rods):
+            if a != b:
+                return False
+        return True
 
     def print(self) -> None:
         """Afficher le jeu, les tiges empilent les cubes à la verticale"""
@@ -47,14 +52,19 @@ class Game():
         """Ajouter un cube dans le jeu"""
         rod = self.rods[rod_index]
         rod.put(cube)
-        # print("DEBUG ajout de cube", cube, "dans rod", rod_index, "remplie à", rod.get_size(), "/", rod.max_size)
-
-    def play_move(self, move: Move) -> None:
-        """Effectuer un déplacement dans le jeu et renvoyer une copie du jeu avec le déplacement appliqué"""
-        # ! Empêcher les coups illégaux (error)
-        # TODO
-        pass
 
     def copy(self):
         """Créer une copie du jeu"""
         return copy.deepcopy(self)
+    
+    def play_move(self, move: Move):
+        """Appliquer un déplacement dans le jeu (en place, ne crée pas de copie)"""
+        
+        # Ajout du déplacement à l'historique
+        self.history.append(move) 
+
+        # Application du déplacement
+        source_rod = self.rods[move.source]
+        cube = source_rod.pop()
+        destination_rod = self.rods[move.destination] 
+        destination_rod.put(cube)
