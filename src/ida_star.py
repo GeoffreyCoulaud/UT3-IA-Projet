@@ -1,12 +1,8 @@
 from typing import Sequence, Callable
-from xmlrpc.client import Boolean
-from etat import Etat
-import copy
 import math
 
 from .game import Game
 from .move import Move
-from .rod  import Rod
 from .collections import Stack, Set
 
 

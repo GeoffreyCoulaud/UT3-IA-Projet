@@ -1,5 +1,3 @@
-from typing import Sequence
-
 from .game import Game
 from .cube import Cube
 from .move import Move
