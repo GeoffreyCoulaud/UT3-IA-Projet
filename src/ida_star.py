@@ -3,7 +3,7 @@ import math
 
 from game import Game
 from move import Move
-from collections import Stack, Set
+from custom_collections import Stack, Set
 
 
 class IDAStar():

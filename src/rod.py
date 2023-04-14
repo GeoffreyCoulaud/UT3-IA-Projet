@@ -1,4 +1,4 @@
-from collections import BoundedStack
+from custom_collections import BoundedStack
 
 
 class Rod(BoundedStack):
