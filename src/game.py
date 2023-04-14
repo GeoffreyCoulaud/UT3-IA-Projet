@@ -1,9 +1,9 @@
 from typing import MutableSequence
 import copy
 
-from .rod import Rod
-from .cube import Cube
-from .move import Move
+from rod import Rod
+from cube import Cube
+from move import Move
 
 
 class Game():

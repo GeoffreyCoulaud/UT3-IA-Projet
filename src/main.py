@@ -1,7 +1,7 @@
-from .game import Game
-from .cube import Cube
-from .move import Move
-from .ida_star import IDAStar
+from game import Game
+from cube import Cube
+from move import Move
+from ida_star import IDAStar
 
 
 def get_cubes_positions(game: Game) -> dict[Cube, tuple[int]]:
