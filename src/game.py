@@ -51,7 +51,7 @@ class Game():
     def add_cube(self, cube: Cube, rod_index: int):
         """Ajouter un cube dans le jeu"""
         rod = self.rods[rod_index]
-        rod.put(cube)
+        rod.add(cube)
 
     def copy(self):
         """Créer une copie du jeu"""
@@ -67,4 +67,4 @@ class Game():
         source_rod = self.rods[move.source]
         cube = source_rod.pop()
         destination_rod = self.rods[move.destination] 
-        destination_rod.put(cube)
+        destination_rod.add(cube)
