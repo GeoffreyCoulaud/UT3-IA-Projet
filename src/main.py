@@ -1,13 +1,16 @@
+import argparse
+
 from game import Game
 from cube import Cube
 from move import Move
 from ida_star import IDAStar
+import tests
 
 
 def get_cubes_positions(game: Game) -> dict[Cube, tuple[int]]:
     """Obtenir les positions (coordonnées) de chaque cube"""
     positions = dict()
-    for (col, rod) in enumerate(game):
+    for (col, rod) in enumerate(game.rods):
         for (row, cube) in enumerate(rod):
             positions[cube] = (col, row)
     return positions
@@ -55,37 +58,23 @@ def game_successors(game: Game) -> list[Game]:
 
 def main():
 
-    # --- Test d'implémentation avec but 1, page 5
-    
+    # Récupération des situations voulues
+    parser = argparse.ArgumentParser()
+    parser.add_argument("init_number", type=int, choices=range(1, len(tests.initial_situations)+1), help="Numéro de situation initiale")
+    parser.add_argument("goal_number", type=int, choices=range(1, len(tests.goals)+1), help="Numéro de but")
+    args = parser.parse_args()
+
     # Etat initial
-    init: Game = Game(n_rods=4, max_rod_size=3)
-    init.add_cube(Cube(3, "J"), rod_index=0)
-    init.add_cube(Cube(2, "J"), rod_index=0)
-    init.add_cube(Cube(1, "J"), rod_index=1)
-    init.add_cube(Cube(3, "B"), rod_index=2)
-    init.add_cube(Cube(2, "B"), rod_index=2)
-    init.add_cube(Cube(1, "B"), rod_index=2)
-    init.add_cube(Cube(3, "R"), rod_index=3)
-    init.add_cube(Cube(2, "R"), rod_index=3)
-    init.add_cube(Cube(1, "R"), rod_index=3)
+    init = tests.initial_situations[args.init_number-1]
+    goal = tests.goals[args.goal_number-1]
     
-    # Etat but
-    goal: Game = Game(n_rods=4, max_rod_size=3)
-    goal.add_cube(Cube(3, "J"), rod_index=0)
-    goal.add_cube(Cube(2, "J"), rod_index=0)
-    goal.add_cube(Cube(1, "J"), rod_index=0)
-    goal.add_cube(Cube(3, "B"), rod_index=2)
-    goal.add_cube(Cube(2, "B"), rod_index=2)
-    goal.add_cube(Cube(1, "B"), rod_index=2)
-    goal.add_cube(Cube(3, "R"), rod_index=3)
-    goal.add_cube(Cube(2, "R"), rod_index=3)
-    goal.add_cube(Cube(1, "R"), rod_index=3)
-    
-    # Affichage initial
+    # Affichage des états
     print("Etat initial")
     init.print()
+    print("")
     print("Etat but")
     goal.print()
+    print("")
 
     # IDA*
     is_goal = lambda game: game == goal
@@ -94,7 +83,9 @@ def main():
     solution = ida_star.find_solution()
 
     # Affichage de la solution
-    print(solution)
+    print("")
+    for (i, move) in enumerate(solution, start=1):
+        print(f"[Etape {i}] {str(move)}")
 
 
 if __name__ == "__main__":

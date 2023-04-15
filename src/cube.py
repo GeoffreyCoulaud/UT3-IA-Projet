@@ -12,3 +12,6 @@ class Cube():
     
     def __eq__(self, other) -> bool:
         return (self.number == other.number) and (self.color == other.color)
+
+    def __hash__(self) -> int:
+        return hash(str(self))

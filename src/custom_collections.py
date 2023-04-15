@@ -6,7 +6,11 @@ from math import inf
 class Collection(ABC):
     """Classe de base qui représente une collection"""
 
-    _items: MutableSequence = list()
+    _items: list
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = list()
 
     def is_empty(self) -> bool:
         return len(self._items) == 0

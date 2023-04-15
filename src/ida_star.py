@@ -51,7 +51,7 @@ class IDAStar():
 
             # Solution trouvée ?
             if self.is_goal(game):
-                print(f"Created {n_created} nodes")
+                print(f"A créé {n_created} nœuds")
                 self.solution = game
                 return True
 
@@ -65,7 +65,7 @@ class IDAStar():
                 else:
                     new_threshold = min(new_threshold, f_score)
         
-        print(f"Created {n_created} nodes")
+        print(f"A créé {n_created} nœuds")
 
         # Fini sans solution
         if new_threshold == math.inf:
