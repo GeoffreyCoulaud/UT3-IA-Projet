@@ -1,5 +1,6 @@
 from typing import Sequence, Callable
 import math
+import logging
 
 from game import Game
 from move import Move
@@ -38,7 +39,7 @@ class IDAStar():
 
         Renvoie True si a trouvé une solution ou prouve qu'il n'y en a pas, sinon False = pas encore terminé."""
 
-        new_threshold = math.inf
+        future_threshold = math.inf
         seen = Set()
         waiting = Stack()
         waiting.add(self.init)
@@ -51,29 +52,40 @@ class IDAStar():
 
             # Solution trouvée ?
             if self.is_goal(game):
-                print(f"A créé {n_created} nœuds")
                 self.solution = game
+                logging.info(f"A créé {n_created} nœuds")
                 return True
 
             # Sinon, mise en attente des états fils atteignables non-vus
+            # (Etats triés selon leur score ascendant)
             children = self.get_game_chidren(game)
+            children = sorted(children, key=self.f_score) 
             n_created += len(children)
-            for child in sorted(children, key=self.f_score):
+            for child in children:
                 f_score = self.f_score(child)
-                if (f_score <= self.threshold) and (child not in seen): 
+                info_line = f"profondeur={len(child.history)} score={f_score}"
+                if child in seen:
+                    # Ignorer les situations déjà vues
+                    info_line += " (déjà vu)"
+                elif f_score <= self.threshold:
+                    # Si sous seuil, à explorer
+                    info_line += " (en attente)"
                     waiting.add(child)
                 else:
-                    new_threshold = min(new_threshold, f_score)
+                    # Sinon, si plus petit que futur seuil, devient futur seuil
+                    info_line += " (hors d'atteinte)"
+                    future_threshold = min(future_threshold, f_score)
+                logging.debug(info_line)
 
-        print(f"A créé {n_created} nœuds")
+        logging.info(f"A créé {n_created} nœuds")
 
         # Fini sans solution
-        if new_threshold == math.inf:
+        if future_threshold == math.inf:
             return True
 
         # Pas fini
         else:
-            self.threshold = new_threshold
+            self.threshold = future_threshold
             return False
 
     def find_solution(self) -> Sequence[Move]:
@@ -85,7 +97,7 @@ class IDAStar():
         # Recherche d'une solution
         while True:
             self.iteration_count += 1
-            print(f"IDA* iteration {self.iteration_count} (seuil {self.threshold})") # ! Info de debug
+            logging.info(f"IDA* iteration {self.iteration_count} seuil={self.threshold}")
             has_finished = self.bounded_depth_first_iterate()
             if has_finished: break
 

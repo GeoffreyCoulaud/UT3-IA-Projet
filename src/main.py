@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from game import Game
 from cube import Cube
@@ -63,7 +64,18 @@ def main():
     parser.add_argument("init_number", type=int, choices=range(1, len(tests.initial_situations)+1), help="Numéro de situation initiale")
     parser.add_argument("goal_number", type=int, choices=range(1, len(tests.goals)+1), help="Numéro de but")
     parser.add_argument("--d", "--dry-run", dest="dry_run", action="store_true", help="Ne pas solver, juste afficher la situation initiale et le but")
+    parser.add_argument("--verbose", "-v", action="count", default=0, help="Niveau d'information affiché, jusqu'à -vvv = DEBUG")
     args = parser.parse_args()
+
+    # Définition du niveau de log (ex: INFO = on veut voir les infos et les truc plus importants)
+    level_map = {
+        0: logging.ERROR,
+        1: logging.WARNING,
+        2: logging.INFO,
+        3: logging.DEBUG
+    }
+    log_level = level_map.get(args.verbose, logging.DEBUG)
+    logging.getLogger().setLevel(log_level)
 
     # Etat initial
     init = tests.initial_situations[args.init_number-1]
