@@ -1,4 +1,4 @@
-from typing import Iterator, MutableSequence
+from typing import Iterator
 from abc import ABC
 from math import inf
 
@@ -31,13 +31,13 @@ class Collection(ABC):
 
 
 class OrderedCollection(Collection):
-    
+
     def pop(self) -> None:
         return self._items.pop()
 
     def top(self):
         return self._items[len(self._items) - 1]
-    
+
     def __getitem__(self, i):
         return self._items.__getitem__(i)
 

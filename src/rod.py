@@ -4,7 +4,7 @@ from custom_collections import BoundedStack
 class Rod(BoundedStack):
     """
     Classe qui représente une pique du jeu.
-    
+
     Les cubes sont stockés dans une Pile/LIFO où le "dessous" est l'index 0.   
     On ajoute donc des cubes à la fin de la liste des cubes.
     """

@@ -35,7 +35,7 @@ class IDAStar():
 
     def bounded_depth_first_iterate(self) -> bool:
         """Iteration en profondeur jusqu'à un seuil.
-        
+
         Renvoie True si a trouvé une solution ou prouve qu'il n'y en a pas, sinon False = pas encore terminé."""
 
         new_threshold = math.inf
@@ -44,7 +44,7 @@ class IDAStar():
         waiting.add(self.init)
 
         n_created = 0
-        
+
         while not waiting.is_empty():
             game = waiting.pop()
             seen.add(game)
@@ -64,7 +64,7 @@ class IDAStar():
                     waiting.add(child)
                 else:
                     new_threshold = min(new_threshold, f_score)
-        
+
         print(f"A créé {n_created} nœuds")
 
         # Fini sans solution
@@ -78,10 +78,10 @@ class IDAStar():
 
     def find_solution(self) -> Sequence[Move]:
         """Trouver une liste de déplacements pour arriver à un état but. Si impossible, une liste vide de déplacements."""
-        
+
         # Seuil initial = heuristique de l'état initial
         self.threshold = self.get_game_heuristic(self.init)
-        
+
         # Recherche d'une solution
         while True:
             self.iteration_count += 1
