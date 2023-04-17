@@ -1,0 +1,555 @@
+from dataclasses import dataclass
+
+@dataclass
+class Cube():
+    """Classe représentant un cube de jeu avec un numéro et une couleur"""
+
+    number: int
+    color: str
+
+    def __str__(self) -> str:
+        return str(self.number) + self.color
+    
+    def __eq__(self, other) -> bool:
+        return (self.number == other.number) and (self.color == other.color)
+
+    def __hash__(self) -> int:
+        return hash(str(self))from typing import Iterator
+from abc import ABC
+from math import inf
+
+
+class Collection(ABC):
+    """Classe de base qui représente une collection"""
+
+    _items: list
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = list()
+
+    def is_empty(self) -> bool:
+        return len(self._items) == 0
+
+    def add(self, item) -> None:
+        """Abstrait, à implémenter dans les descendants"""
+        raise NotImplementedError()
+
+    def remove(self, item) -> None:
+        """Abstrait, à implémenter dans les descendants"""
+        raise NotImplementedError()
+
+    def __len__(self) -> int:
+        return self._items.__len__()
+
+    def __iter__(self) -> Iterator:
+        return self._items.__iter__()
+
+
+class OrderedCollection(Collection):
+
+    def pop(self) -> None:
+        return self._items.pop()
+
+    def top(self):
+        return self._items[len(self._items) - 1]
+
+    def __getitem__(self, i):
+        return self._items.__getitem__(i)
+
+
+class Queue(OrderedCollection):
+    """Classe représentant une file (premier arrivé, premier sorti)"""
+
+    def add(self, item) -> None:
+        self._items.insert(0, item)
+
+
+class Stack(OrderedCollection):
+    """Classe représentant une pile (dernier arrivé, premier sorti)"""
+
+    def add(self, item) -> None:
+        self._items.append(item)
+
+
+class BoundedCollection(Collection):
+    """Classe représentant une collection avec une taille maximale"""
+
+    max_size = inf
+
+    def __init__(self, max_size: int) -> None:
+        super().__init__()
+        self.max_size = max_size
+
+    def is_full(self) -> bool:
+        return len(self) == self.max_size
+
+    def add(self, item) -> None:
+        if self.is_full(): 
+            raise ValueError("Collection is full")
+        return super().add(item)
+
+
+class BoundedStack(Stack, BoundedCollection):
+    """Classe représentant une pile avec une taille maximum"""
+    pass
+
+
+class Set(Collection):
+    """Classe représentant un ensemble d'éléments uniques"""
+
+    def add(self, item):
+        if item in self._items: return
+        self._items.append(item)
+
+    def remove(self, item):
+        self._items.remove(item)
+
+    def __contains__(self, item):
+        return self._items.__contains__(item)from typing import MutableSequence, Iterable
+import copy
+
+from rod import Rod
+from cube import Cube
+from move import Move
+
+
+class Game():
+
+    rods: MutableSequence[Rod]
+    max_rod_size: int
+
+    history: MutableSequence[Move] # Déplacements joués pour arriver à cet état
+    total_cost: int # Coût pour arriver à cet état
+
+    def __init__(self, n_rods: int, max_rod_size: int = 4):
+        self.rods = list()
+        self.history = list()
+        self.total_cost = 0
+        self.max_rod_size = max_rod_size
+        # Créer les tiges vides de la bonne taille
+        for i in range(n_rods):
+            rod = Rod(number=i, max_size=self.max_rod_size)
+            self.rods.append(rod)
+
+    def __eq__(self, other) -> bool:
+        """Deux jeux sont égaux s'ils ont les mêmes cubes au même endroit"""
+        if len(self.rods) != len(other.rods):
+            return False
+        for (a, b) in zip(self.rods, other.rods):
+            if a != b:
+                return False
+        return True
+
+    def print(self) -> None:
+        """Afficher le jeu, les tiges empilent les cubes à la verticale"""
+        for row in range(self.max_rod_size-1, -1, -1):
+            text_line = ""
+            for rod in self.rods:
+                # Espace horizontal précédent chaque cube
+                if rod.number > 0: 
+                    text_line += " "
+                # Laisser du blanc si pique vide ou n'a rien à cette ligne
+                if rod.is_empty() or len(rod) <= row:
+                    text_line += "  "
+                    continue
+                # Afficher le cube
+                cube = rod[row]
+                text_line += str(cube)
+            print(text_line)
+
+    def add_cube(self, rod_index: int, cube: Cube):
+        """Ajouter un cube sur la pique donnée dans le jeu"""
+        self.rods[rod_index].add(cube)
+
+    def copy(self):
+        """Créer une copie du jeu"""
+        return copy.deepcopy(self)
+    
+    def play_move(self, move: Move):
+        """Appliquer un déplacement dans le jeu (en place, ne crée pas de copie)"""
+        
+        # Ajout du déplacement à l'historique
+        self.history.append(move)
+        self.total_cost += 1
+
+        # Application du déplacement
+        source_rod = self.rods[move.source]
+        cube = source_rod.pop()
+        destination_rod = self.rods[move.destination] 
+        destination_rod.add(cube)from typing import Sequence, Callable
+import math
+import logging
+
+from game import Game
+from move import Move
+from custom_collections import Stack, Set
+
+
+class IDAStar():
+
+    init: Game
+    is_goal: Callable[[Game], bool] # Fonction qui renvoie vraie si l'état donné est un but
+    get_game_chidren: Callable[[Game], Sequence[Game]] # Fonction qui renvoie les états fils d'un état
+    get_game_heuristic: Callable[[Game], int] # Fonction heuristique (score) d'un état
+
+    threshold: int # Seuil actuel lors de l'itération
+    solution: Game = None # Solution trouvée
+    iteration_count = 0
+
+    def __init__(
+        self, 
+        init: Game, 
+        is_goal: Callable[[Game], bool],
+        get_game_chidren: Callable[[Game], Sequence[Game]],
+        get_game_heuristic: Callable[[Game], int]
+    ) -> None:
+        """Mettre en place le solveur IDA*"""
+        self.init = init
+        self.is_goal = is_goal
+        self.get_game_chidren = get_game_chidren
+        self.get_game_heuristic = get_game_heuristic
+
+    def f_score(self, game: Game) -> int:
+        return len(game.history) + self.get_game_heuristic(game)
+
+    def bounded_depth_first_iterate(self) -> bool:
+        """Iteration en profondeur jusqu'à un seuil.
+
+        Renvoie True si a trouvé une solution ou prouve qu'il n'y en a pas, sinon False = pas encore terminé."""
+
+        future_threshold = math.inf
+        seen = Set()
+        waiting = Stack()
+        waiting.add(self.init)
+
+        n_created = 0
+
+        while not waiting.is_empty():
+            game = waiting.pop()
+            seen.add(game)
+
+            # Solution trouvée ?
+            if self.is_goal(game):
+                self.solution = game
+                logging.info(f"A créé {n_created} nœuds")
+                return True
+
+            # Sinon, mise en attente des états fils atteignables non-vus
+            # (Etats triés selon leur score ascendant)
+            children = self.get_game_chidren(game)
+            children = sorted(children, key=self.f_score) 
+            n_created += len(children)
+            for child in children:
+                f_score = self.f_score(child)
+                info_line = f"profondeur={len(child.history)} score={f_score}"
+                if child in seen:
+                    # Ignorer les situations déjà vues
+                    info_line += " (déjà vu)"
+                elif f_score <= self.threshold:
+                    # Si sous seuil, à explorer
+                    info_line += " (en attente)"
+                    waiting.add(child)
+                else:
+                    # Sinon, si plus petit que futur seuil, devient futur seuil
+                    info_line += " (hors d'atteinte)"
+                    future_threshold = min(future_threshold, f_score)
+                logging.debug(info_line)
+
+        logging.info(f"A créé {n_created} nœuds")
+
+        # Fini sans solution
+        if future_threshold == math.inf:
+            return True
+
+        # Pas fini
+        else:
+            self.threshold = future_threshold
+            return False
+
+    def find_solution(self) -> Sequence[Move]:
+        """Trouver une liste de déplacements pour arriver à un état but. Si impossible, une liste vide de déplacements."""
+
+        # Seuil initial = heuristique de l'état initial
+        self.threshold = self.get_game_heuristic(self.init)
+
+        # Recherche d'une solution
+        while True:
+            self.iteration_count += 1
+            logging.info(f"IDA* iteration {self.iteration_count} seuil={self.threshold}")
+            has_finished = self.bounded_depth_first_iterate()
+            if has_finished: break
+
+        # Pas de solution possible
+        if self.solution is None:
+            return list()
+
+        # Solution trouvée
+        return self.solution.historyimport argparse
+import logging
+
+from game import Game
+from cube import Cube
+from move import Move
+from ida_star import IDAStar
+import tests
+
+
+def get_cubes_positions(game: Game) -> dict[Cube, tuple[int]]:
+    """Obtenir les positions (coordonnées) de chaque cube"""
+    positions = dict()
+    for (col, rod) in enumerate(game.rods):
+        for (row, cube) in enumerate(rod):
+            positions[cube] = (col, row)
+    return positions
+
+def wrong_place_count(state: Game, goal: Game) -> int:
+    """Compter les cubes à des positions différentes"""
+
+    total = 0
+
+    state_positions = get_cubes_positions(state)
+    goal_positions = get_cubes_positions(goal)
+
+    # S'assurer que l'on a bien les mêmes cubes
+    if state_positions.keys() != goal_positions.keys():
+        raise KeyError()
+
+    # Compter les positions différentes deux à deux
+    cubes = state_positions.keys()
+    for cube in cubes:
+        if state_positions.get(cube) != goal_positions.get(cube):
+            total += 1
+    return total
+
+def game_successors(game: Game) -> list[Game]:
+        """Renvoyer les états de jeu suivants possibles depuis un état donné"""
+
+        # Identification des piques sources & destinations
+        sources = list() # = piques non-vides
+        destinations = list() # = piques non-pleines
+        for (i, rod) in enumerate(game.rods):
+            if not rod.is_empty(): sources.append(i)
+            if not rod.is_full(): destinations.append(i)
+
+        # Etats de jeu après les coups possibles
+        # Coups = couples (s,d) s ∈ sources, d ∈ destinations, s ≠ d
+        states = list()
+        for s in sources:
+            for d in destinations:
+                if s == d: continue
+                move = Move(s, d)
+                state = game.copy()
+                state.play_move(move)
+                states.append(state)
+        return states
+
+def main():
+
+    # Récupération des situations voulues
+    parser = argparse.ArgumentParser()
+    parser.add_argument("init_number", type=int, choices=range(1, len(tests.initial_situations)+1), help="Numéro de situation initiale")
+    parser.add_argument("goal_number", type=int, choices=range(1, len(tests.goals)+1), help="Numéro de but")
+    parser.add_argument("--d", "--dry-run", dest="dry_run", action="store_true", help="Ne pas solver, juste afficher la situation initiale et le but")
+    parser.add_argument("--verbose", "-v", action="count", default=0, help="Niveau d'information affiché, jusqu'à -vvv = DEBUG")
+    args = parser.parse_args()
+
+    # Définition du niveau de log (ex: INFO = on veut voir les infos et les truc plus importants)
+    level_map = {
+        0: logging.ERROR,
+        1: logging.WARNING,
+        2: logging.INFO,
+        3: logging.DEBUG
+    }
+    log_level = level_map.get(args.verbose, logging.DEBUG)
+    logging.getLogger().setLevel(log_level)
+
+    # Etat initial
+    init = tests.initial_situations[args.init_number-1]
+    goal = tests.goals[args.goal_number-1]
+
+    # Affichage des états
+    print("Etat initial")
+    init.print()
+    print("")
+    print("Etat but")
+    goal.print()
+    if args.dry_run:
+        return 0
+    print("")
+
+    # IDA*
+    is_goal = lambda game: game == goal
+    heuristic = lambda game: wrong_place_count(game, goal)
+    ida_star = IDAStar(init, is_goal, game_successors, heuristic)
+    solution = ida_star.find_solution()
+
+    # Affichage de la solution
+    print("")
+    for (i, move) in enumerate(solution, start=1):
+        print(f"[Etape {i}] {str(move)}")
+
+
+if __name__ == "__main__":
+    main()from dataclasses import dataclass
+
+
+@dataclass
+class Move():
+    """Classe représentant un déplacement d'une tige à une autre"""
+
+    source: int
+    destination: int
+
+    def __str__(self):
+        return f"{self.source} → {self.destination}"from custom_collections import BoundedStack
+
+
+class Rod(BoundedStack):
+    """
+    Classe qui représente une pique du jeu.
+
+    Les cubes sont stockés dans une Pile/LIFO où le "dessous" est l'index 0.   
+    On ajoute donc des cubes à la fin de la liste des cubes.
+    """
+
+    number: int
+
+    def __init__(self, number: int, max_size: int = 3) -> None:
+        self.number = number
+        super().__init__(max_size)
+
+    def __eq__(self, other) -> bool:
+        """Deux piques sont égales si elles ont les mêmes cubes au même endroit"""
+        if len(self) != len(other):
+            return False
+        for (a, b) in zip(self, other):
+            if a != b:
+                return False
+        return Truefrom game import Game
+from cube import Cube
+
+# ----------------------------------------- Situations initiales pages 5-6 du sujet 
+
+initial_situations = list()
+
+def __generate_initial_situations():
+
+    global initial_situations
+
+    # Situation initiale 1
+    init = Game(n_rods=4, max_rod_size=3)
+    init.add_cube(0, Cube(3, "J"))
+    init.add_cube(0, Cube(2, "J"))
+    init.add_cube(1, Cube(1, "J"))
+    init.add_cube(2, Cube(3, "B"))
+    init.add_cube(2, Cube(2, "B"))
+    init.add_cube(2, Cube(1, "B"))
+    init.add_cube(3, Cube(3, "R"))
+    init.add_cube(3, Cube(2, "R"))
+    init.add_cube(3, Cube(1, "R"))
+    initial_situations.append(init)
+
+    # Situation initiale 2
+    init = Game(n_rods=4, max_rod_size=3)
+    init.add_cube(0, Cube(3, "J"))
+    init.add_cube(0, Cube(2, "J"))
+    init.add_cube(0, Cube(1, "J"))
+    init.add_cube(1, Cube(3, "B"))
+    init.add_cube(1, Cube(2, "B"))
+    init.add_cube(1, Cube(1, "B"))
+    init.add_cube(2, Cube(3, "R"))
+    init.add_cube(2, Cube(2, "R"))
+    init.add_cube(2, Cube(1, "R"))
+    initial_situations.append(init)
+
+# ----------------------------------------- Buts pages 5-6 du sujet
+
+goals = list()
+
+def __generate_goals():
+
+    global goals
+
+    # But 1
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(3, "J"))
+    goal.add_cube(0, Cube(2, "J"))
+    goal.add_cube(0, Cube(1, "J"))
+    goal.add_cube(2, Cube(3, "B"))
+    goal.add_cube(2, Cube(2, "B"))
+    goal.add_cube(2, Cube(1, "B"))
+    goal.add_cube(3, Cube(3, "R"))
+    goal.add_cube(3, Cube(2, "R"))
+    goal.add_cube(3, Cube(1, "R"))
+    goals.append(goal)
+
+    # But 2
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(3, "J"))
+    goal.add_cube(0, Cube(2, "J"))
+    goal.add_cube(0, Cube(1, "J"))
+    goal.add_cube(1, Cube(1, "R"))
+    goal.add_cube(1, Cube(2, "R"))
+    goal.add_cube(1, Cube(3, "R"))
+    goal.add_cube(2, Cube(3, "B"))
+    goal.add_cube(2, Cube(2, "B"))
+    goal.add_cube(2, Cube(1, "B"))
+    goals.append(goal)
+
+    # But 3
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(3, "J"))
+    goal.add_cube(0, Cube(2, "J"))
+    goal.add_cube(0, Cube(1, "R"))
+    goal.add_cube(1, Cube(3, "B"))
+    goal.add_cube(1, Cube(1, "B"))
+    goal.add_cube(1, Cube(2, "R"))
+    goal.add_cube(2, Cube(3, "R"))
+    goal.add_cube(2, Cube(2, "B"))
+    goal.add_cube(2, Cube(1, "J"))
+    goals.append(goal)
+
+    # But 4
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(3, "J"))
+    goal.add_cube(0, Cube(1, "J"))
+    goal.add_cube(0, Cube(2, "J"))
+    goal.add_cube(1, Cube(3, "B"))
+    goal.add_cube(1, Cube(1, "B"))
+    goal.add_cube(1, Cube(2, "B"))
+    goal.add_cube(2, Cube(3, "R"))
+    goal.add_cube(2, Cube(1, "R"))
+    goal.add_cube(2, Cube(2, "R"))
+    goals.append(goal)
+
+    # But 5
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(3, "J"))
+    goal.add_cube(0, Cube(2, "J"))
+    goal.add_cube(0, Cube(2, "R"))
+    goal.add_cube(1, Cube(3, "B"))
+    goal.add_cube(1, Cube(1, "B"))
+    goal.add_cube(2, Cube(3, "R"))
+    goal.add_cube(2, Cube(1, "R"))
+    goal.add_cube(2, Cube(2, "B"))
+    goal.add_cube(3, Cube(1, "J"))
+    goals.append(goal)
+
+    # But 6
+    goal = Game(n_rods=4, max_rod_size=3)
+    goal.add_cube(0, Cube(1, "B"))
+    goal.add_cube(0, Cube(1, "R"))
+    goal.add_cube(0, Cube(1, "J"))
+    goal.add_cube(1, Cube(2, "B"))
+    goal.add_cube(1, Cube(2, "R"))
+    goal.add_cube(1, Cube(2, "J"))
+    goal.add_cube(2, Cube(3, "B"))
+    goal.add_cube(2, Cube(3, "R"))
+    goal.add_cube(2, Cube(3, "J"))
+    goals.append(goal)
+
+# ----------------------------------------- Génération des valeurs
+
+__generate_initial_situations()
+__generate_goals()
